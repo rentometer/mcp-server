@@ -12,11 +12,15 @@
  *     "mcpServers": {
  *       "rentometer": {
  *         "command": "npx",
- *         "args": ["-y", "@rentometer/mcp-server"],
- *         "env": { "RENTOMETER_API_KEY": "..." }
+ *         "args": ["-y", "@rentometer/mcp-server"]
  *       }
  *     }
  *   }
+ *
+ * Subcommands:
+ *   - (default)  start the MCP stdio server
+ *   - auth       run the OAuth device-authorization flow + save credential
+ *   - logout     delete the saved credential
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -25,6 +29,7 @@ import { z } from "zod";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { runDeviceAuth, runLogout } from "./auth.js";
 
 const RENTOMETER_BASE_URL =
   process.env.RENTOMETER_BASE_URL ?? "https://www.rentometer.com";
@@ -354,12 +359,48 @@ server.tool(
 // Boot
 // ---------------------------------------------------------------------------
 
-async function main() {
+async function startMcpServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
+function printUsage() {
+  process.stdout.write(
+    "Usage: rentometer-mcp [auth|logout]\n" +
+      "\n" +
+      "  (no args)   Start the MCP stdio server (default; what host clients invoke)\n" +
+      "  auth        Run the device-authorization flow + save your API key locally\n" +
+      "  logout      Delete the saved credential at ~/.config/rentometer/api_key\n",
+  );
+}
+
+async function main() {
+  const subcommand = process.argv[2];
+
+  switch (subcommand) {
+    case undefined:
+      await startMcpServer();
+      break;
+    case "auth":
+    case "login":
+      await runDeviceAuth();
+      break;
+    case "logout":
+      runLogout();
+      break;
+    case "-h":
+    case "--help":
+    case "help":
+      printUsage();
+      break;
+    default:
+      process.stderr.write(`Unknown subcommand: ${subcommand}\n\n`);
+      printUsage();
+      process.exit(2);
+  }
+}
+
 main().catch((error) => {
-  console.error("[rentometer-mcp] fatal:", error);
+  console.error("[rentometer-mcp] fatal:", error.message ?? error);
   process.exit(1);
 });

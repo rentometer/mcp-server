@@ -76,16 +76,49 @@ ChatGPT Desktop's MCP support reads from
 
 ## Authentication
 
-The server resolves the API key in this order:
+The fastest path:
+
+```bash
+npx -y @rentometer/mcp-server auth
+```
+
+That runs the OAuth 2.0 device-authorization flow (RFC 8628):
+
+1. Mints a short user-readable code (e.g. `BCDF-GHJK`) and prints the
+   verification URL.
+2. Opens your default browser to the URL (or you can copy/paste).
+3. You sign into rentometer.com, confirm the code, and click **Authorize**.
+4. The CLI receives the new API key and writes it to
+   `~/.config/rentometer/api_key` with `0600` perms.
+
+No key ever transits your clipboard. The same credential file is read by the
+[`/rentometer-login` Claude Code skill](https://github.com/rentometer/rentometer2/tree/main/claude-skills/skills/rentometer-login),
+so logging in once works across both surfaces.
+
+### How the MCP server finds the key at runtime
+
+The server resolves credentials in this order:
 
 1. `RENTOMETER_API_KEY` environment variable (set in the MCP `env` block)
-2. `~/.config/rentometer/api_key` (file written by the
-   [`/rentometer-login` Claude Code skill](https://github.com/rentometer/rentometer2/tree/main/claude-skills/skills/rentometer-login)
-   — same credential store, so configuring once works across both surfaces)
+2. `~/.config/rentometer/api_key` (file written by `auth` or by the
+   `/rentometer-login` skill)
 
-Generate a key at https://www.rentometer.com/rentometer-api/settings. Requires
-an active Pro subscription with API access. The public `rentometer_area` and
-`rentometer_area_search` tools work without a key.
+You can also generate keys manually at
+https://www.rentometer.com/rentometer-api/settings if you'd rather not use
+the device flow — just paste the key into your shell rc as
+`export RENTOMETER_API_KEY=...` or directly into the file above.
+
+Requires an active Pro subscription with API access enabled. The public
+`rentometer_area` and `rentometer_area_search` tools work without a key.
+
+### Log out
+
+```bash
+npx -y @rentometer/mcp-server logout
+```
+
+Deletes the saved credential file. Tell you if `RENTOMETER_API_KEY` is still
+set in your environment so you can unset it.
 
 ## Local development
 
