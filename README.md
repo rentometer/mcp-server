@@ -92,7 +92,7 @@ That runs the OAuth 2.0 device-authorization flow (RFC 8628):
    `~/.config/rentometer/api_key` with `0600` perms.
 
 No key ever transits your clipboard. The same credential file is read by the
-[`/rentometer-login` Claude Code skill](https://github.com/rentometer/rentometer2/tree/main/claude-skills/skills/rentometer-login),
+[`/rentometer-login` Claude Code skill](https://github.com/rentometer/claude-skills/tree/main/skills/rentometer-login),
 so logging in once works across both surfaces.
 
 ### How the MCP server finds the key at runtime

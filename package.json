@@ -32,8 +32,7 @@
   "homepage": "https://www.rentometer.com/rentometer-api",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rentometer/rentometer2.git",
-    "directory": "mcp-server"
+    "url": "git+https://github.com/rentometer/mcp-server.git"
   },
   "keywords": [
     "rentometer",
