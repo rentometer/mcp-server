@@ -21,7 +21,7 @@ instead of platform-specific skill formats.
 
 | Tool | Endpoint | Cost |
 |---|---|---|
-| `rentometer_summary` | `GET /api/v1/summary` | 1 quickview |
+| `rentometer_summary` | `GET /api/v1/summary` (address, lat/lng, or Atlas slug) | 1 quickview |
 | `rentometer_nearby_comps` | `GET /api/v1/nearby_comps` | 1 premium |
 | `rentometer_batch_submit` | `POST /api/v1/batch_summary` | N quickview (on completion) |
 | `rentometer_batch_status` | `GET /api/v1/batch_summary/{id}` | free |
@@ -29,7 +29,9 @@ instead of platform-specific skill formats.
 | `rentometer_request_pro_report` | `GET /api/v1/request_pro_report` | 1 pro_report |
 | `rentometer_pro_report_status` | `GET /api/v1/pro_report_status` | free |
 | `rentometer_download_pro_report` | `GET /api/v1/download_pro_report` | free |
-| `rentometer_area` | `GET /api/v1/rental-data/{type}/{id}` | free, no auth |
+| `rentometer_atlas_search` | `GET /api/v1/atlas/search` — resolve a place name to an Atlas slug | free |
+| `rentometer_atlas_facts` | `GET /api/v1/atlas/facts` — rent + ACS + HUD + BLS + Census bundle for an area | 1 quickview |
+| `rentometer_area` | `GET /api/v1/rental-data/{type}/{id}` (precomputed RentalStatistics) | free, no auth |
 | `rentometer_area_search` | `GET /api/v1/rental-data/search` | free, no auth |
 | `rentometer_rate_limit` | `GET /api/v1/rate_limit` | free |
 

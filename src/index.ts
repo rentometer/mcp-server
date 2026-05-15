@@ -146,30 +146,42 @@ const server = new McpServer({
 server.tool(
   "rentometer_summary",
   "Get aggregate rent statistics (mean, median, percentiles, sample size) " +
-    "for a property at an address or lat/lng. Charges 1 quickview credit.",
+    "for a property at an address, a lat/lng point, or an Atlas-bounded " +
+    "geographic area. Charges 1 quickview credit. Pass exactly one of: " +
+    "`address`, (`latitude` + `longitude`), or `slug`. When `slug` is " +
+    "passed, `bedrooms` and the other filters are ignored and the response " +
+    "reflects whole-area numbers (same as the public /average-rent-in/... " +
+    "pages). Use rentometer_atlas_search to resolve a place name to a slug.",
   {
     address: z
       .string()
       .optional()
       .describe(
-        "Full street address including city + state. Mutually exclusive with latitude/longitude.",
+        "Full street address including city + state. Mutually exclusive with latitude/longitude and slug.",
       ),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
+    slug: z
+      .string()
+      .optional()
+      .describe(
+        "Atlas slug from rentometer_atlas_search. When provided, takes precedence over address/lat-lng and returns whole-area numbers.",
+      ),
     bedrooms: z
       .number()
       .int()
       .min(0)
       .max(6)
-      .describe("0 = studio"),
+      .optional()
+      .describe("0 = studio. Required for address / lat-lng searches. Ignored when slug is provided."),
     baths: z
       .enum(["1", "1.5", "1.5+"])
       .optional()
-      .describe("Omit for any bath count"),
+      .describe("Omit for any bath count. Ignored when slug is provided."),
     building_type: z
       .enum(["apartment", "house"])
       .optional()
-      .describe("Omit to include both"),
+      .describe("Omit to include both. Ignored when slug is provided."),
     look_back_days: z.number().int().min(90).max(1460).optional(),
   },
   async (args) =>
@@ -290,6 +302,56 @@ server.tool(
   },
   async (args) =>
     callRentometer("GET", "/api/v1/download_pro_report", { query: args }),
+);
+
+// ---------------------------------------------------------------------------
+// Atlas — live, key-gated bounded-geography analysis
+// ---------------------------------------------------------------------------
+
+server.tool(
+  "rentometer_atlas_search",
+  "Resolve a place name (e.g. 'hyde park cincinnati', '45208', 'Austin TX') " +
+    "to one or more Atlas slug values. Returns slug, name, area_type, and " +
+    "listing density. Free — no credit charge. Use the returned slug with " +
+    "rentometer_summary({slug: ...}) for rent stats or rentometer_atlas_facts " +
+    "for the full data bundle (demographics, fair-market rents, unemployment, " +
+    "etc.).",
+  {
+    q: z
+      .string()
+      .min(2)
+      .describe("Search query (min 2 characters)"),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .optional()
+      .describe("Max results to return (default 15)"),
+  },
+  async (args) =>
+    callRentometer("GET", "/api/v1/atlas/search", { query: args }),
+);
+
+server.tool(
+  "rentometer_atlas_facts",
+  "Get the full Rentometer Atlas bundle for a bounded geographic area: rent " +
+    "breakdown (overall, per-bedroom, per-property-type) PLUS ACS demographics, " +
+    "HUD Fair Market Rents, HUD CHAS housing affordability, BLS LAUS local " +
+    "unemployment, BLS QCEW industry/wages, and Census BPS building permits. " +
+    "External sources are gated behind Flipper flags on your account and are " +
+    "silently omitted when not enabled. Charges 1 quickview credit. The same " +
+    "numbers as the public /average-rent-in/... pages, in one call — useful " +
+    "for any agent doing market or neighborhood analysis.",
+  {
+    slug: z
+      .string()
+      .describe(
+        "Atlas slug from rentometer_atlas_search (e.g. 'cincinnati-oh', '45208', 'hyde-park-cincinnati-oh').",
+      ),
+  },
+  async (args) =>
+    callRentometer("GET", "/api/v1/atlas/facts", { query: args }),
 );
 
 // ---------------------------------------------------------------------------
