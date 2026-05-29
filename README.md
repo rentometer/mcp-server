@@ -31,6 +31,8 @@ instead of platform-specific skill formats.
 | `rentometer_download_pro_report` | `GET /api/v1/download_pro_report` | free |
 | `rentometer_atlas_search` | `GET /api/v1/atlas/search` — resolve a place name to an Atlas slug | free |
 | `rentometer_atlas_facts` | `GET /api/v1/atlas/facts` — rent + ACS + HUD + BLS + Census bundle for an area | 1 quickview |
+| `rentometer_metrics` | `GET /api/v1/atlas/metrics` — metrics rankable by `rentometer_rankings`, with entitlements | free |
+| `rentometer_rankings` | `GET /api/v1/atlas/rankings` — rank areas by a metric ("top N … by X"), optionally within a parent | 1 quickview |
 | `rentometer_area` | `GET /api/v1/rental-data/{type}/{id}` (precomputed RentalStatistics) | free, no auth |
 | `rentometer_area_search` | `GET /api/v1/rental-data/search` | free, no auth |
 | `rentometer_rate_limit` | `GET /api/v1/rate_limit` | free |

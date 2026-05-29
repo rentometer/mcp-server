@@ -354,6 +354,80 @@ server.tool(
     callRentometer("GET", "/api/v1/atlas/facts", { query: args }),
 );
 
+server.tool(
+  "rentometer_metrics",
+  "List the metrics that rentometer_rankings can rank areas by (e.g. " +
+    "acs.median_household_income, hud_fmr.two_br, bls_laus.unemployment_rate, " +
+    "census_bps.permits_total). Returns each metric's key, label, unit, the " +
+    "area types it's published for, its natural sort direction, and whether " +
+    "YOUR account is entitled to it. Free — no credit charge, no key state " +
+    "changed. Call this first when you're unsure of a metric key, and only " +
+    "pass rentometer_rankings a metric whose `entitled` is true.",
+  {},
+  async () => callRentometer("GET", "/api/v1/atlas/metrics"),
+);
+
+server.tool(
+  "rentometer_rankings",
+  "Rank US areas of one type by a single metric — i.e. 'top N <area_type> by " +
+    "<metric>' — optionally scoped to a parent area. This is the call for " +
+    "leaderboards ('top/best/highest/lowest N ...'), as opposed to " +
+    "rentometer_atlas_facts which describes ONE named area. One call replaces " +
+    "enumerating areas and calling atlas_facts on each. Charges 1 quickview " +
+    "credit (flat, regardless of limit). Metric must be a key from " +
+    "rentometer_metrics that your account is entitled to (otherwise 403), and " +
+    "must be published for the chosen area_type (otherwise 422). Phase 1 " +
+    "covers government metrics (ACS/HUD/BLS/Census); rent-based ranking is not " +
+    "available yet.",
+  {
+    area_type: z
+      .enum([
+        "metro",
+        "city",
+        "place",
+        "county",
+        "zcta",
+        "zip",
+        "neighborhood",
+        "school_district",
+        "state",
+      ])
+      .describe("What kind of area to rank. `city`=`place`, `zip`=`zcta`."),
+    metric: z
+      .string()
+      .describe(
+        "A metric key from rentometer_metrics, e.g. 'acs.median_household_income'.",
+      ),
+    within: z
+      .string()
+      .optional()
+      .describe(
+        "Parent Atlas slug (from rentometer_atlas_search) to scope the ranking to, e.g. 'cincinnati-oh-metro'. Omit for a country-wide ranking.",
+      ),
+    order: z
+      .enum(["asc", "desc"])
+      .optional()
+      .describe(
+        "Sort direction. Defaults to the metric's natural direction (e.g. income desc, unemployment asc). Set explicitly for 'lowest' vs 'highest'.",
+      ),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("How many areas to return (default 10, max 100)."),
+    offset: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("Skip this many ranked areas, for paging."),
+  },
+  async (args) =>
+    callRentometer("GET", "/api/v1/atlas/rankings", { query: args }),
+);
+
 // ---------------------------------------------------------------------------
 // Rental Data (public — no key required)
 // ---------------------------------------------------------------------------
