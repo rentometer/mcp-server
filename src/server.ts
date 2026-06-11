@@ -469,6 +469,59 @@ export function buildServer(opts: BuildServerOptions = {}): McpServer {
       callRentometer("GET", "/api/v1/atlas/rankings", { query: args }),
   );
 
+  server.tool(
+    "rentometer_screener",
+    "Find US areas of one type whose government-fact metrics ALL fall within given " +
+      "ranges — a multi-constraint screener (e.g. 'metros with median household income " +
+      "$75k-$125k, effective property tax rate < 0.75%, median home value < $300k'). Where " +
+      "rentometer_rankings sorts by one metric, this filters by several at once. Each filter " +
+      "metric must be a rentometer_metrics key your account is entitled to and published for " +
+      "the area_type. Charges 1 quickview credit (flat). Results include the matched value of " +
+      "each filter metric.",
+    {
+      area_type: z
+        .enum([
+          "metro",
+          "city",
+          "place",
+          "county",
+          "zcta",
+          "zip",
+          "neighborhood",
+          "school_district",
+          "state",
+        ])
+        .describe("What kind of area to screen. city=place, zip=zcta."),
+      filters: z
+        .array(
+          z.object({
+            metric: z.string().describe("A rentometer_metrics key, e.g. acs.median_household_income."),
+            min: z.number().optional().describe("Inclusive lower bound."),
+            max: z.number().optional().describe("Inclusive upper bound."),
+          }),
+        )
+        .min(1)
+        .max(6)
+        .describe("Metric range constraints; an area must satisfy all of them."),
+      within: z
+        .string()
+        .optional()
+        .describe("Parent Atlas slug to scope to (containment). Omit for country-wide."),
+      sort: z
+        .string()
+        .optional()
+        .describe("Metric key to order results by. Defaults to the first filter's metric."),
+      order: z.enum(["asc", "desc"]).optional(),
+      limit: z.number().int().min(1).max(100).optional(),
+      offset: z.number().int().min(0).optional(),
+    },
+    async ({ filters, ...rest }) =>
+      callRentometer("GET", "/api/v1/atlas/screener", {
+        // filters must reach the API as a JSON string, not nested query params.
+        query: { ...rest, filters: JSON.stringify(filters) },
+      }),
+  );
+
   // -------------------------------------------------------------------------
   // Rental Data (public — no key required)
   // -------------------------------------------------------------------------
