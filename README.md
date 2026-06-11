@@ -29,7 +29,7 @@ instead of platform-specific skill formats.
 | `rentometer_request_pro_report` | `GET /api/v1/request_pro_report` | 1 pro_report |
 | `rentometer_pro_report_status` | `GET /api/v1/pro_report_status` | free |
 | `rentometer_download_pro_report` | `GET /api/v1/download_pro_report` | free |
-| `rentometer_atlas_search` | `GET /api/v1/atlas/search` — resolve a place name to an Atlas slug | free |
+| `rentometer_atlas_search` | `GET /api/v1/atlas/search` — resolve a place name (`q`) or Census FIPS/ZCTA (`geoid`) to an Atlas slug | free |
 | `rentometer_atlas_facts` | `GET /api/v1/atlas/facts` — rent + ACS + HUD + BLS + Census bundle for an area | 1 quickview |
 | `rentometer_metrics` | `GET /api/v1/atlas/metrics` — metrics rankable by `rentometer_rankings`, with entitlements | free |
 | `rentometer_rankings` | `GET /api/v1/atlas/rankings` — rank areas by a metric ("top N … by X"), optionally within a parent | 1 quickview |

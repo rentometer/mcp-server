@@ -1,6 +1,6 @@
 {
   "name": "@rentometer/mcp-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Model Context Protocol server exposing the Rentometer API to Claude Desktop, Claude Code, Cursor, Windsurf, Zed, ChatGPT Desktop, and any MCP-capable agent client.",
   "license": "Proprietary",
   "type": "module",

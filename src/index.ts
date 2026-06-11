@@ -33,7 +33,7 @@ import { runDeviceAuth, runLogout } from "./auth.js";
 
 const RENTOMETER_BASE_URL =
   process.env.RENTOMETER_BASE_URL ?? "https://www.rentometer.com";
-const USER_AGENT = "rentometer-mcp/0.1.0";
+const USER_AGENT = "rentometer-mcp/0.2.0";
 
 function resolveApiKey(): string | undefined {
   if (process.env.RENTOMETER_API_KEY) return process.env.RENTOMETER_API_KEY;
@@ -136,7 +136,7 @@ async function callRentometer(
 
 const server = new McpServer({
   name: "rentometer",
-  version: "0.1.0",
+  version: "0.2.0",
 });
 
 // ---------------------------------------------------------------------------
@@ -151,7 +151,11 @@ server.tool(
     "`address`, (`latitude` + `longitude`), or `slug`. When `slug` is " +
     "passed, `bedrooms` and the other filters are ignored and the response " +
     "reflects whole-area numbers (same as the public /average-rent-in/... " +
-    "pages). Use rentometer_atlas_search to resolve a place name to a slug.",
+    "pages). Use rentometer_atlas_search to resolve a place name to a slug. " +
+    "On address / lat-lng searches the response may include an `atlas` array — " +
+    "the bounded Atlas areas containing the point, broadest to narrowest, each " +
+    "{slug, geoid, name, type, area_type}. Reuse any returned slug directly with " +
+    "rentometer_atlas_facts (no extra rentometer_atlas_search call needed).",
   {
     address: z
       .string()
@@ -311,16 +315,39 @@ server.tool(
 server.tool(
   "rentometer_atlas_search",
   "Resolve a place name (e.g. 'hyde park cincinnati', '45208', 'Austin TX') " +
-    "to one or more Atlas slug values. Returns slug, name, area_type, and " +
-    "listing density. Free — no credit charge. Use the returned slug with " +
-    "rentometer_summary({slug: ...}) for rent stats or rentometer_atlas_facts " +
-    "for the full data bundle (demographics, fair-market rents, unemployment, " +
-    "etc.).",
+    "to one or more Atlas slug values. Returns slug, name, area_type, listing " +
+    "density, and has_rental_data. Free — no credit charge. Use the returned " +
+    "slug with rentometer_summary({slug: ...}) for rent stats or " +
+    "rentometer_atlas_facts for the full data bundle (demographics, fair-market " +
+    "rents, unemployment, etc.). Pass `q` for a name search, OR `geoid` to " +
+    "resolve a Census FIPS/GEOID or 5-digit ZCTA directly.",
   {
     q: z
       .string()
       .min(2)
-      .describe("Search query (min 2 characters)"),
+      .optional()
+      .describe("Name search query (min 2 characters). Pass this OR `geoid`."),
+    geoid: z
+      .string()
+      .optional()
+      .describe(
+        "A Census FIPS/GEOID or 5-digit ZCTA. A bare 5-digit code can match " +
+          "several area types, so all matches are returned; narrow with `area_type`.",
+      ),
+    area_type: z
+      .enum([
+        "state",
+        "metro",
+        "county",
+        "place",
+        "city",
+        "zcta",
+        "zip",
+        "neighborhood",
+        "school_district",
+      ])
+      .optional()
+      .describe("Disambiguate a `geoid` lookup. Ignored for `q` searches."),
     limit: z
       .number()
       .int()
@@ -342,13 +369,38 @@ server.tool(
     "External sources are gated behind Flipper flags on your account and are " +
     "silently omitted when not enabled. Charges 1 quickview credit. The same " +
     "numbers as the public /average-rent-in/... pages, in one call — useful " +
-    "for any agent doing market or neighborhood analysis.",
+    "for any agent doing market or neighborhood analysis. Identify the area by " +
+    "`slug` (from rentometer_atlas_search) OR by `geoid` (Census FIPS / ZCTA).",
   {
     slug: z
       .string()
+      .optional()
       .describe(
-        "Atlas slug from rentometer_atlas_search (e.g. 'cincinnati-oh', '45208', 'hyde-park-cincinnati-oh').",
+        "Atlas slug from rentometer_atlas_search (e.g. 'cincinnati-oh', '45208', " +
+          "'hyde-park-cincinnati-oh'). Pass this OR `geoid`.",
       ),
+    geoid: z
+      .string()
+      .optional()
+      .describe(
+        "A Census FIPS/GEOID or 5-digit ZCTA. Pass this OR `slug`. Add " +
+          "`area_type` to disambiguate a bare 5-digit code (returns 422 with a " +
+          "`candidates` list otherwise).",
+      ),
+    area_type: z
+      .enum([
+        "state",
+        "metro",
+        "county",
+        "place",
+        "city",
+        "zcta",
+        "zip",
+        "neighborhood",
+        "school_district",
+      ])
+      .optional()
+      .describe("Disambiguate a `geoid` lookup. Ignored when `slug` is passed."),
   },
   async (args) =>
     callRentometer("GET", "/api/v1/atlas/facts", { query: args }),
