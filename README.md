@@ -37,7 +37,33 @@ instead of platform-specific skill formats.
 | `rentometer_area_search` | `GET /api/v1/rental-data/search` | free, no auth |
 | `rentometer_rate_limit` | `GET /api/v1/rate_limit` | free |
 
-## Install + configure
+## Two ways to run it
+
+| Transport | Entry | Who it's for | Auth |
+|---|---|---|---|
+| **stdio** (local) | `rentometer-mcp` / `npx @rentometer/mcp-server` | A single developer wiring the server into a local client (Claude Desktop, Cursor, …) | API key from env / `~/.config/rentometer/api_key` (device flow) |
+| **Streamable HTTP** (hosted) | `rentometer-mcp-http` / `node dist/http.js` | A hosted endpoint that **remote MCP connectors** (Claude / ChatGPT) point at — one process, many users | OAuth 2.1 per request (the Rails app at `/oauth/*`); the connector sends `Authorization: Bearer <access_token>` on every call |
+
+Both transports serve the **same 15 tools** from `src/server.ts`. The stdio path is one-user-one-key; the HTTP path is per-request — each connected user's OAuth access token is threaded into a freshly-built, stateless server instance and forwarded to the Rentometer API, where it resolves to that user's ApiKey.
+
+### Hosted (Streamable HTTP)
+
+```bash
+npm run build
+PORT=8080 node dist/http.js        # reverse-proxy so the public URL is https://<host>/mcp
+```
+
+- `POST /mcp` — the single MCP endpoint. Requests without a valid bearer get `401` + a
+  `WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource"` header, which is how
+  a connector discovers it must run the OAuth flow (served by the Rails app).
+- `GET /healthz` — liveness probe.
+- Env: `PORT` (default 8080), `RENTOMETER_BASE_URL` (default `https://www.rentometer.com`),
+  `RENTOMETER_OAUTH_RESOURCE_METADATA_URL` (override the discovery pointer).
+
+Connecting from a client is "paste the `/mcp` URL → Connect → approve OAuth" — see the website's
+**Connect** page for the per-client walkthrough.
+
+## Install + configure (stdio)
 
 ### Claude Desktop
 
